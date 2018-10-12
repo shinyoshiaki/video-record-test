@@ -31,9 +31,9 @@ declare class MediaRecorder extends EventTarget {
   onstart: () => void;
   onstop: () => void;
 
-  constructor(stream: MediaStream);
+  constructor(stream: MediaStream, option?: any);
 
-  start(): any;
+  start(second?: number): any;
 
   stop(): any;
 

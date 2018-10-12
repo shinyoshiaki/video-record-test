@@ -1,5 +1,5 @@
 import * as React from "react";
-import { recordLoop } from "./domain/media";
+import { recordInterval } from "./domain/media";
 
 class App extends React.Component<{}, { videoSrc: any; videoBuffer: any }> {
   constructor(props: any) {
@@ -7,10 +7,10 @@ class App extends React.Component<{}, { videoSrc: any; videoBuffer: any }> {
     this.state = { videoSrc: undefined, videoBuffer: undefined };
   }
 
-  public componentDidMount() {
-    recordLoop(blob => {
-      this.setState({ videoSrc: window.URL.createObjectURL(blob) });
-    }, 1000);    
+  public async componentDidMount() {
+    await recordInterval(ms => {
+      this.setState({ videoSrc: window.URL.createObjectURL(ms) });
+    });
   }
 
   public render() {
@@ -22,7 +22,7 @@ class App extends React.Component<{}, { videoSrc: any; videoBuffer: any }> {
         <p className="App-intro">
           To get started, edit <code>src/App.tsx</code> and save to reload.
         </p>
-        <video src={this.state.videoSrc} autoPlay={true} />        
+        <video src={this.state.videoSrc} autoPlay={true} />
       </div>
     );
   }
