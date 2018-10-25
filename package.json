@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@types/sha1": "^1.1.1",
+    "kad-rtc": "git+ssh://git@bitbucket.org/shinyoshiaki/kad-rtc.git#bson",
     "react": "^16.5.2",
     "react-dom": "^16.5.2",
     "react-scripts-ts": "3.1.0",
-    "recordrtc": "^5.4.8"
+    "recordrtc": "^5.4.8",
+    "sha1": "^1.1.1"
   },
   "scripts": {
     "start": "react-scripts-ts start",

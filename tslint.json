@@ -10,6 +10,9 @@
   "rules": {
     "no-console": [false],
     "noImplicitReturns": [false],
-    "member-access": false
+    "member-access": false,
+    "curly": false,
+    "ordered-imports": false,
+    "object-literal-sort-keys": false
   }
 }

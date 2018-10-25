@@ -12,28 +12,32 @@ export async function getStream() {
 
 export default class Media {
   chunks: ArrayBuffer[];
+  sourceBuffer: SourceBuffer;
 
-  recur: (sb: SourceBuffer) => Promise<any> = async sb => {
-    if (sb.updating) {
+  recur: () => Promise<any> = async () => {
+    if (this.sourceBuffer.updating) {
       await sleep(10);
-      return this.recur(sb);
+      return this.recur();
     }
 
     const chunk = this.chunks.shift();
     if (chunk == null) {
       await sleep(10);
-      return this.recur(sb);
+      return this.recur();
     }
 
-    sb.appendBuffer(chunk);
+    this.sourceBuffer.appendBuffer(chunk);
     console.info("appendBuffer:", chunk.byteLength, "B");
 
-    await waitEvent(sb, "updateend");
+    await waitEvent(this.sourceBuffer, "updateend");
 
-    return this.recur(sb);
+    return this.recur();
   };
 
-  async recordInterval(cb: (ms: MediaSource) => void) {
+  async recordInterval(cb: {
+    ms?: (ms: MediaSource) => void;
+    chunk?: (chunk: Buffer) => void;
+  }) {
     const stream = await getStream();
     if (!stream) {
       return;
@@ -42,22 +46,22 @@ export default class Media {
       mimeType: 'video/webm; codecs="opus,vp8"'
     });
     const ms = new MediaSource();
-    cb(ms);
+    if (cb.ms) cb.ms(ms);
 
     await waitEvent(ms, "sourceopen");
-    console.log("opend");
 
-    const sb = ms.addSourceBuffer(mediaRecorder.mimeType);
+    this.sourceBuffer = ms.addSourceBuffer(mediaRecorder.mimeType);
     this.chunks = [];
 
     mediaRecorder.ondataavailable = async ({ data: blob }) => {
       const buf = await readAsArrayBuffer(blob);
       this.chunks.push(buf);
+      if (cb.chunk) cb.chunk(Buffer.from(buf));
     };
 
-    mediaRecorder.start(100);
+    mediaRecorder.start(1000);
 
-    this.recur(sb);
+    this.recur();
 
     setTimeout(() => {
       mediaRecorder.stop();
