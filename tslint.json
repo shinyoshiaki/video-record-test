@@ -9,6 +9,7 @@
   },
   "rules": {
     "no-console": [false],
-    "noImplicitReturns": [false]
+    "noImplicitReturns": [false],
+    "member-access": false
   }
 }

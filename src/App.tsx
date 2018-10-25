@@ -1,14 +1,16 @@
 import * as React from "react";
-import { recordInterval } from "./domain/media";
+import Media from "./modules/media";
 
 class App extends React.Component<{}, { videoSrc: any; videoBuffer: any }> {
+  media: Media;
   constructor(props: any) {
     super(props);
     this.state = { videoSrc: undefined, videoBuffer: undefined };
+    this.media = new Media();
   }
 
   public async componentDidMount() {
-    await recordInterval(ms => {
+    await this.media.recordInterval(ms => {
       this.setState({ videoSrc: window.URL.createObjectURL(ms) });
     });
   }
