@@ -1,3 +1,5 @@
+import Kademlia from "kad-rtc";
+import toArrayBuffer from 'to-array-buffer'
 export async function getStream() {
   const stream = await navigator.mediaDevices
     .getUserMedia({
@@ -10,29 +12,35 @@ export async function getStream() {
   }
 }
 
+// function toArrayBuffer(buffer: Buffer) {
+//   const ab = new ArrayBuffer(buffer.length);
+//   const view = new Uint8Array(ab);
+//   for (let i = 0; i < buffer.length; ++i) {
+//     view[i] = buffer[i];
+//   }
+//   return ab;
+// }
+
 export default class Media {
-  chunks: ArrayBuffer[];
-  sourceBuffer: SourceBuffer;
+  chunks: ArrayBuffer[] = [];
 
-  recur: () => Promise<any> = async () => {
-    if (this.sourceBuffer.updating) {
-      await sleep(10);
-      return this.recur();
+  async update(sb: SourceBuffer) {
+    for (;;) {
+      if (sb.updating || !this.chunks || this.chunks.length === 0) {
+        await sleep(10);
+        continue;
+      }
+      console.log("chunks", this.chunks);
+      const chunk = this.chunks.shift();
+      if (!chunk) {
+        await sleep(10);
+        continue;
+      }
+      sb.appendBuffer(chunk);
+      console.info("appendBuffer:", chunk.byteLength, "B");
+      await waitEvent(sb, "updateend");
     }
-
-    const chunk = this.chunks.shift();
-    if (chunk == null) {
-      await sleep(10);
-      return this.recur();
-    }
-
-    this.sourceBuffer.appendBuffer(chunk);
-    console.info("appendBuffer:", chunk.byteLength, "B");
-
-    await waitEvent(this.sourceBuffer, "updateend");
-
-    return this.recur();
-  };
+  }
 
   async recordInterval(cb: {
     ms?: (ms: MediaSource) => void;
@@ -42,16 +50,19 @@ export default class Media {
     if (!stream) {
       return;
     }
+
+    const mimeType = `video/webm; codecs="opus,vp8"`;
+
     const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'video/webm; codecs="opus,vp8"'
+      mimeType
     });
     const ms = new MediaSource();
     if (cb.ms) cb.ms(ms);
 
     await waitEvent(ms, "sourceopen");
+    console.log("opend");
 
-    this.sourceBuffer = ms.addSourceBuffer(mediaRecorder.mimeType);
-    this.chunks = [];
+    const sb = ms.addSourceBuffer(mimeType);
 
     mediaRecorder.ondataavailable = async ({ data: blob }) => {
       const buf = await readAsArrayBuffer(blob);
@@ -61,11 +72,35 @@ export default class Media {
 
     mediaRecorder.start(1000);
 
-    this.recur();
+    this.update(sb);
 
     setTimeout(() => {
       mediaRecorder.stop();
-    }, 60 * 1000);
+    }, 60 * 1000 * 10);
+  }
+
+  async getVideo(
+    magnetUrl: string,
+    kad: Kademlia,
+    cb: (ms: MediaSource) => void
+  ) {
+    const mimeType = `video/webm; codecs="opus,vp8"`;
+    const ms = new MediaSource();
+    cb(ms);
+    await waitEvent(ms, "sourceopen");
+    const sb = ms.addSourceBuffer(mimeType);
+    this.update(sb);
+
+    let url = magnetUrl;
+    for (;;) {
+      await new Promise(r => setTimeout(r, 1000));
+      const value: IvideoChunk = await kad.findValue(url);
+      url = value.next;
+      console.log(value);
+      const ab = toArrayBuffer(value.chunk);
+      console.log({ ab });
+      this.chunks.push(ab);
+    }
   }
 }
 

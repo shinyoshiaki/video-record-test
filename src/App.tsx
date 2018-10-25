@@ -1,39 +1,18 @@
 import * as React from "react";
-import Media from "./modules/media";
+import StreamVideo from "./components/streamVideo";
+import WatchVideo from "./components/watchVideo";
 import Node from "kad-rtc/lib/node/node";
-import sha1 from "sha1";
+import NodeList from "./components/nodeList";
 
-class App extends React.Component<{}, { videoSrc: any; videoBuffer: any }> {
-  media: Media;
+class App extends React.Component<{}, { kbuckets: any }> {
   node: Node;
-  buffer: Buffer;
   constructor(props: any) {
     super(props);
-    this.state = { videoSrc: undefined, videoBuffer: undefined };
-    this.media = new Media();
     this.node = new Node("localhost", "20000");
-
-    this.node.kad.callback.onConnect = () => {
-      console.log("onconnect");
-      this.record();
+    this.state = { kbuckets: undefined };
+    this.node.kad.callback.onAddPeer = data => {
+      this.setState({ kbuckets: this.node.kad.kbuckets });
     };
-  }
-  async record() {
-    await this.media.recordInterval({
-      ms: ms => {
-        this.setState({ videoSrc: window.URL.createObjectURL(ms) });
-      },
-      chunk: chunk => {
-        if (this.buffer) {
-          // this.node.kad.store(
-          //   this.node.kad.nodeId,
-          //   sha1(chunk).toString(),
-          //   this.buffer
-          // );
-        }
-        this.buffer = chunk;
-      }
-    });
   }
 
   public render() {
@@ -42,10 +21,9 @@ class App extends React.Component<{}, { videoSrc: any; videoBuffer: any }> {
         <header className="App-header">
           <h1 className="App-title">Welcome to React</h1>
         </header>
-        <p className="App-intro">
-          To get started, edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <video src={this.state.videoSrc} autoPlay={true} />
+        <StreamVideo kad={this.node.kad} />
+        <WatchVideo kad={this.node.kad} />
+        <NodeList kbuckets={this.state.kbuckets} />
       </div>
     );
   }
